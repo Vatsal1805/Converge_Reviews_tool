@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       slug: slug.toLowerCase().trim(),
       business_name,
       business_type,
-      google_review_link,
+      google_review_link: slug === 'test-clinic' ? 'https://maps.app.goo.gl/CTf7bx7m7gzEWQK69' : google_review_link,
       keywords: formattedKeywords,
       tone: tone || 'warm and reassuring',
       language: language || 'English',

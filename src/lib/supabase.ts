@@ -47,7 +47,7 @@ export const SEED_CLIENTS: Record<string, ClientRecord> = {
     slug: 'test-clinic',
     business_name: 'Harikrushna Dental & Eye Hospital',
     business_type: 'dental and eye clinic',
-    google_review_link: 'https://search.google.com/local/writereview?placeid=ChIJN1t_t_wVBDkR246',
+    google_review_link: 'https://maps.app.goo.gl/CTf7bx7m7gzEWQK69',
     keywords: ['root canal treatment', 'eye checkup', 'painless extraction', 'cataract surgery', 'friendly doctor'],
     tone: 'warm, reassuring and professional',
     language: 'English',

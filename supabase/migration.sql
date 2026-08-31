@@ -100,7 +100,7 @@ INSERT INTO public.clients (
     'test-clinic', 
     'Harikrushna Dental & Eye Hospital', 
     'dental and eye clinic', 
-    'https://search.google.com/local/writereview?placeid=ChIJN1t_t_wVBDkR246', 
+    'https://maps.app.goo.gl/CTf7bx7m7gzEWQK69', 
     ARRAY['root canal treatment', 'eye checkup', 'painless extraction', 'cataract surgery', 'friendly doctor'], 
     'warm, reassuring and professional', 
     'English', 

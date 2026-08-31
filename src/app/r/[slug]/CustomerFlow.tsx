@@ -145,10 +145,13 @@ export default function CustomerFlow({ client }: CustomerFlowProps) {
       logScanEvent(client.id, rating, currentIndex, true);
     }
 
-    // 3. Open business Google review URL
-    setTimeout(() => {
+    // 3. Open business Google review URL synchronously
+    try {
       window.open(client.google_review_link, '_blank', 'noopener,noreferrer');
-    }, 400);
+    } catch (e) {
+      // Fallback redirect
+      window.location.href = client.google_review_link;
+    }
   };
 
   return (
