@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       slug: slug.toLowerCase().trim(),
       business_name,
       business_type,
-      google_review_link: slug === 'test-clinic' ? 'https://maps.app.goo.gl/CTf7bx7m7gzEWQK69' : google_review_link,
+      google_review_link: slug === 'test-clinic' ? 'https://www.google.com/maps/place/Harikrushna+Eye+hospital+%26+Dental+Clinic+%7C+Best+Eye+Care+Hospital+in+Ahmedabad+%7C+Best+Dental+Care+Hospital+in+Ahmedabad/@23.0076475,72.6603201,17z/data=!4m8!3m7!1s0x395e870025d56045:0x98ab90b24ef716af!8m2!3d23.0076475!4d72.6603201!9m1!1b1!16s%2Fg%2F11vwxq98mp!18m1!1e1' : google_review_link,
       keywords: formattedKeywords,
       tone: tone || 'warm and reassuring',
       language: language || 'English',

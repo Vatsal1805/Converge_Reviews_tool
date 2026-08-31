@@ -23,8 +23,8 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-// Fetch helper with AbortController 4-second timeout per call
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 4000): Promise<Response> {
+// Fetch helper with AbortController 3-second timeout per call
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 3000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -201,21 +201,20 @@ Rules:
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 
-    // 6. Execute Call to AI Providers with Model-Specific Thinking Config, Token Caps & 4s Timeouts
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey && geminiKey.trim() !== '') {
+    // 6. Execute Call to AI Providers with Model-Specific Thinking Config, Token Caps & 3s Timeouts
+    const geminiKey = process.env.GEMINI_API_KEY?.trim();
+    // Validate Gemini key format (Google AI Studio keys start with AIzaSy)
+    const isValidGeminiKey = geminiKey && geminiKey.startsWith('AIzaSy');
+
+    if (isValidGeminiKey) {
       const geminiModelConfigs = [
-        {
-          model: 'gemini-3.5-flash',
-          thinkingConfig: { thinkingLevel: 'minimal' },
-        },
-        {
-          model: 'gemini-3.6-flash',
-          thinkingConfig: { thinkingLevel: 'minimal' },
-        },
         {
           model: 'gemini-2.5-flash',
           thinkingConfig: { thinkingBudget: 0 },
+        },
+        {
+          model: 'gemini-3.5-flash',
+          thinkingConfig: { thinkingLevel: 'minimal' },
         },
       ];
 
@@ -233,12 +232,12 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 generationConfig: {
                   responseMimeType: 'application/json',
                   temperature: 0.8,
-                  maxOutputTokens: 600,
+                  maxOutputTokens: 500,
                   thinkingConfig: config.thinkingConfig,
                 },
               }),
             },
-            4000
+            3000
           );
 
           if (res.ok) {
@@ -252,7 +251,6 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 const final5Drafts = parsed.slice(0, 5);
                 console.timeEnd(timerLabel);
                 console.timeEnd('total_generate_reviews_request');
-                // Non-blocking fire-and-forget logging to draft_log
                 logGeneratedDrafts(client.id, rating, final5Drafts);
                 return NextResponse.json({
                   success: true,
@@ -270,10 +268,12 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
       }
     }
 
-    // Try OpenRouter API with 4s timeout
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    if (openRouterKey && openRouterKey.trim() !== '') {
-      const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+    // Try OpenRouter API with 3s timeout (Valid OpenRouter key starts with sk-or-v1-)
+    const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+    const isValidOpenRouterKey = openRouterKey && openRouterKey.startsWith('sk-or-v1-');
+
+    if (isValidOpenRouterKey) {
+      const openRouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-lite-001:free';
       console.time('provider_openrouter');
       try {
         const res = await fetchWithTimeout(
@@ -293,10 +293,10 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 { role: 'user', content: userPrompt },
               ],
               temperature: 0.8,
-              max_tokens: 600,
+              max_tokens: 500,
             }),
           },
-          4000
+          3000
         );
 
         if (res.ok) {
@@ -326,7 +326,7 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
       }
     }
 
-    // Fallback Generator if AI APIs are unavailable or timed out
+    // Ultra-fast Fallback Generator if AI keys are unconfigured/invalid or timed out
     const fallbackDrafts = generateFallbackReviews(business_name, business_type, rating, keywords);
     console.timeEnd('total_generate_reviews_request');
     logGeneratedDrafts(client.id, rating, fallbackDrafts);
