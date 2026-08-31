@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1C2321;
+  --color-paper: #EDEAE1;
+  --color-paper-raised: #FFFFFF;
+  --color-brass: #9C6B1F;
+  --color-brass-deep: #6E4A12;
+  --color-line: #D9D4C7;
+  --color-signal-good: #3F6C4C;
+
+  --font-sans: var(--font-ibm-sans), system-ui, sans-serif;
+  --font-display: var(--font-outfit), var(--font-fraunces), sans-serif;
+  --font-mono: var(--font-ibm-mono), monospace;
+
+  --shadow-slip: 0 2px 12px -2px rgba(28, 35, 33, 0.08), 0 1px 3px -1px rgba(28, 35, 33, 0.05);
+  --shadow-slip-hover: 0 8px 24px -4px rgba(28, 35, 33, 0.12), 0 2px 6px -1px rgba(28, 35, 33, 0.06);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-ibm-sans), system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+
+  /* Keyboard Focus Ring Rule from design.md */
+  *:focus-visible {
+    outline: 2px solid var(--color-brass) !important;
+    outline-offset: 2px !important;
+  }
+}
+
+@utility tactile-btn {
+  transition: transform 100ms ease, background-color 150ms ease, opacity 150ms ease;
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@utility perforation-divider {
+  background-image: radial-gradient(circle, var(--color-line) 1.5px, transparent 1.5px);
+  background-size: 8px 8px;
+  background-repeat: repeat-x;
+  height: 4px;
+}
