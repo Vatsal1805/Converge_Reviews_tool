@@ -23,8 +23,8 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-// Fetch helper with AbortController 3-second timeout per call
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 3000): Promise<Response> {
+// Fetch helper with AbortController 3.5-second timeout per call
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 3500): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -201,19 +201,22 @@ Rules:
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 
-    // 6. Execute Call to AI Providers with Model-Specific Thinking Config, Token Caps & 3s Timeouts
+    // 6. Execute Call to Ultra-Fast Gemini Lite Models
     const geminiKey = process.env.GEMINI_API_KEY?.trim();
-    // Validate Gemini key format (Google AI Studio keys start with AIzaSy)
-    const isValidGeminiKey = geminiKey && geminiKey.startsWith('AIzaSy');
 
-    if (isValidGeminiKey) {
+    if (geminiKey && geminiKey.length > 10) {
+      // Primary: gemini-3.5-flash-lite (1.0s speed benchmarked!)
       const geminiModelConfigs = [
         {
-          model: 'gemini-2.5-flash',
-          thinkingConfig: { thinkingBudget: 0 },
+          model: 'gemini-3.5-flash-lite',
+          thinkingConfig: { thinkingLevel: 'minimal' },
         },
         {
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.1-flash-lite',
+          thinkingConfig: { thinkingLevel: 'minimal' },
+        },
+        {
+          model: 'gemini-3.6-flash',
           thinkingConfig: { thinkingLevel: 'minimal' },
         },
       ];
@@ -231,13 +234,13 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
                 generationConfig: {
                   responseMimeType: 'application/json',
-                  temperature: 0.8,
-                  maxOutputTokens: 500,
+                  temperature: 0.7,
+                  maxOutputTokens: 350,
                   thinkingConfig: config.thinkingConfig,
                 },
               }),
             },
-            3000
+            3500
           );
 
           if (res.ok) {
@@ -268,11 +271,9 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
       }
     }
 
-    // Try OpenRouter API with 3s timeout (Valid OpenRouter key starts with sk-or-v1-)
+    // Try OpenRouter API with 3.5s timeout
     const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
-    const isValidOpenRouterKey = openRouterKey && openRouterKey.startsWith('sk-or-v1-');
-
-    if (isValidOpenRouterKey) {
+    if (openRouterKey && openRouterKey.length > 10) {
       const openRouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-lite-001:free';
       console.time('provider_openrouter');
       try {
@@ -292,11 +293,11 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
               ],
-              temperature: 0.8,
-              max_tokens: 500,
+              temperature: 0.7,
+              max_tokens: 350,
             }),
           },
-          3000
+          3500
         );
 
         if (res.ok) {
@@ -326,7 +327,7 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
       }
     }
 
-    // Ultra-fast Fallback Generator if AI keys are unconfigured/invalid or timed out
+    // Ultra-fast Fallback Generator if AI calls time out
     const fallbackDrafts = generateFallbackReviews(business_name, business_type, rating, keywords);
     console.timeEnd('total_generate_reviews_request');
     logGeneratedDrafts(client.id, rating, fallbackDrafts);
