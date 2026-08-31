@@ -648,13 +648,20 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <h3 className="font-display font-bold text-lg text-ink">
                 {qrModalClient.business_name}
               </h3>
-              <p className="text-xs font-mono text-ink/60">
-                Target URL: /r/{qrModalClient.slug}
-              </p>
+              <a
+                href={`/r/${qrModalClient.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-paper border border-line text-xs font-mono text-brass hover:underline transition-colors"
+                title="Click to open customer review page in new tab"
+              >
+                <span>/r/{qrModalClient.slug}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
 
             {/* Generated QR Code Image */}
