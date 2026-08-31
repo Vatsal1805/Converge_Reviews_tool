@@ -23,6 +23,20 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
+// Fetch helper with AbortController 4-second timeout per call
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 4000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
 // Fallback review generator returning 5 short, non-generic reviews
 function generateFallbackReviews(
   businessName: string,
@@ -65,6 +79,7 @@ function generateFallbackReviews(
  * Fetch last 15 draft rows from draft_log for client_id and extract first 5-6 words of each draft
  */
 async function getRecentOpenings(clientId: string): Promise<string> {
+  console.time('fetch_recent_openings');
   try {
     const { data, error } = await supabaseAdmin
       .from('draft_log')
@@ -74,6 +89,7 @@ async function getRecentOpenings(clientId: string): Promise<string> {
       .limit(15);
 
     if (error || !data || data.length === 0) {
+      console.timeEnd('fetch_recent_openings');
       return '';
     }
 
@@ -83,7 +99,6 @@ async function getRecentOpenings(clientId: string): Promise<string> {
       if (Array.isArray(row.drafts)) {
         row.drafts.forEach((draftStr: string) => {
           if (typeof draftStr === 'string' && draftStr.trim().length > 0) {
-            // Extract first 5-6 words
             const words = draftStr.trim().split(/\s+/).slice(0, 5).join(' ');
             if (words) {
               openingsSet.add(words.toLowerCase());
@@ -93,35 +108,44 @@ async function getRecentOpenings(clientId: string): Promise<string> {
       }
     });
 
+    console.timeEnd('fetch_recent_openings');
     return Array.from(openingsSet).slice(0, 10).join(', ');
   } catch (err) {
     console.warn('Error fetching recent openings from draft_log:', err);
+    console.timeEnd('fetch_recent_openings');
     return '';
   }
 }
 
 /**
- * Record generated drafts array into draft_log table
+ * Fire-and-forget non-blocking insert into draft_log table
  */
-async function logGeneratedDrafts(clientId: string, starRating: number, drafts: string[]) {
-  try {
-    await supabaseAdmin.from('draft_log').insert([
-      {
-        client_id: clientId,
-        star_rating: starRating,
-        drafts: drafts,
-      },
-    ]);
-  } catch (err) {
-    console.warn('Error inserting into draft_log:', err);
-  }
+function logGeneratedDrafts(clientId: string, starRating: number, drafts: string[]) {
+  (async () => {
+    try {
+      const { error } = await supabaseAdmin.from('draft_log').insert([
+        {
+          client_id: clientId,
+          star_rating: starRating,
+          drafts: drafts,
+        },
+      ]);
+      if (error) {
+        console.warn('Background draft_log insert warning:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Background draft_log insert error:', err);
+    }
+  })();
 }
 
 export async function POST(req: NextRequest) {
+  console.time('total_generate_reviews_request');
   try {
     // 1. Rate Limiting Check
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
     if (isRateLimited(ip)) {
+      console.timeEnd('total_generate_reviews_request');
       return NextResponse.json(
         { error: 'Too many requests. Please wait a moment before trying again.' },
         { status: 429 }
@@ -133,6 +157,7 @@ export async function POST(req: NextRequest) {
     const { slug, rating } = body;
 
     if (!slug || typeof rating !== 'number' || rating < 1 || rating > 5) {
+      console.timeEnd('total_generate_reviews_request');
       return NextResponse.json(
         { error: 'Invalid request parameters. Must provide slug and star rating (1-5).' },
         { status: 400 }
@@ -142,6 +167,7 @@ export async function POST(req: NextRequest) {
     // 3. Fetch Client configuration from Database
     const client = await getClientBySlug(slug);
     if (!client) {
+      console.timeEnd('total_generate_reviews_request');
       return NextResponse.json({ error: 'Business client not found.' }, { status: 404 });
     }
 
@@ -151,7 +177,7 @@ export async function POST(req: NextRequest) {
     // 4. Extract recent openings from draft_log table for anti-redundancy
     const recentOpenings = await getRecentOpenings(client.id);
 
-    // 5. Build System Prompt & User Prompt (with 5 drafts requirement and banned cliché rules)
+    // 5. Build System Prompt & User Prompt
     const systemPrompt = `You are ghostwriting a short Google review in the authentic voice of a real, one-time customer — not a copywriter, not a brand voice, not an assistant. Tone: ${tone || 'warm and reassuring'}. Language: ${language || 'English'}.
 
 Never use these overused review phrases or close variants of them: 'highly recommend', 'great experience', 'highly professional', 'top-notch', 'exceeded expectations', 'will definitely come back', 'hidden gem', 'exceptional service'. Real customers describe one or two specific, ordinary details instead of using these stock phrases.`;
@@ -175,14 +201,30 @@ Rules:
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 
-    // 6. Execute Call to AI Providers (Gemini -> OpenRouter -> Fallback)
+    // 6. Execute Call to AI Providers with Model-Specific Thinking Config, Token Caps & 4s Timeouts
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey && geminiKey.trim() !== '') {
-      const geminiModels = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
-      for (const model of geminiModels) {
+      const geminiModelConfigs = [
+        {
+          model: 'gemini-3.5-flash',
+          thinkingConfig: { thinkingLevel: 'minimal' },
+        },
+        {
+          model: 'gemini-3.6-flash',
+          thinkingConfig: { thinkingLevel: 'minimal' },
+        },
+        {
+          model: 'gemini-2.5-flash',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      ];
+
+      for (const config of geminiModelConfigs) {
+        const timerLabel = `provider_${config.model}`;
+        console.time(timerLabel);
         try {
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          const res = await fetchWithTimeout(
+            `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${geminiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -191,9 +233,12 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 generationConfig: {
                   responseMimeType: 'application/json',
                   temperature: 0.8,
+                  maxOutputTokens: 600,
+                  thinkingConfig: config.thinkingConfig,
                 },
               }),
-            }
+            },
+            4000
           );
 
           if (res.ok) {
@@ -205,44 +250,54 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
               const parsed = JSON.parse(cleanedText);
               if (Array.isArray(parsed) && parsed.length >= 5) {
                 const final5Drafts = parsed.slice(0, 5);
-                // Log generated drafts to draft_log asynchronously
+                console.timeEnd(timerLabel);
+                console.timeEnd('total_generate_reviews_request');
+                // Non-blocking fire-and-forget logging to draft_log
                 logGeneratedDrafts(client.id, rating, final5Drafts);
                 return NextResponse.json({
                   success: true,
                   drafts: final5Drafts,
-                  provider: `gemini-${model}`,
+                  provider: `gemini-${config.model}`,
                 });
               }
             }
           }
         } catch (e) {
-          console.warn(`Gemini model ${model} attempt failed:`, e);
+          console.warn(`Gemini model ${config.model} attempt failed or timed out:`, e);
+        } finally {
+          console.timeEnd(timerLabel);
         }
       }
     }
 
-    // Try OpenRouter API
+    // Try OpenRouter API with 4s timeout
     const openRouterKey = process.env.OPENROUTER_API_KEY;
     if (openRouterKey && openRouterKey.trim() !== '') {
       const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+      console.time('provider_openrouter');
       try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${openRouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-            'X-Title': 'Converge Reviews',
+        const res = await fetchWithTimeout(
+          'https://openrouter.ai/api/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${openRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+              'X-Title': 'Converge Reviews',
+            },
+            body: JSON.stringify({
+              model: openRouterModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              temperature: 0.8,
+              max_tokens: 600,
+            }),
           },
-          body: JSON.stringify({
-            model: openRouterModel,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.8,
-          }),
-        });
+          4000
+        );
 
         if (res.ok) {
           const data = await res.json();
@@ -253,6 +308,8 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
             const parsed = JSON.parse(cleanedText);
             if (Array.isArray(parsed) && parsed.length >= 5) {
               const final5Drafts = parsed.slice(0, 5);
+              console.timeEnd('provider_openrouter');
+              console.timeEnd('total_generate_reviews_request');
               logGeneratedDrafts(client.id, rating, final5Drafts);
               return NextResponse.json({
                 success: true,
@@ -263,12 +320,15 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
           }
         }
       } catch (e) {
-        console.warn('OpenRouter generation failed:', e);
+        console.warn('OpenRouter generation failed or timed out:', e);
+      } finally {
+        console.timeEnd('provider_openrouter');
       }
     }
 
-    // Fallback Generator if AI APIs are unavailable
+    // Fallback Generator if AI APIs are unavailable or timed out
     const fallbackDrafts = generateFallbackReviews(business_name, business_type, rating, keywords);
+    console.timeEnd('total_generate_reviews_request');
     logGeneratedDrafts(client.id, rating, fallbackDrafts);
     return NextResponse.json({
       success: true,
@@ -277,6 +337,7 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
     });
   } catch (error: any) {
     console.error('API Error in /api/generate-reviews:', error);
+    console.timeEnd('total_generate_reviews_request');
     return NextResponse.json(
       { error: "Couldn't generate review ideas. Try again." },
       { status: 500 }
