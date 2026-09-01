@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import { getClientBySlug, supabaseAdmin } from '@/lib/supabase';
 
 // Simple in-memory rate limiting per IP (max 12 requests per minute)
@@ -23,7 +24,7 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-// Fetch helper with AbortController 3.5-second timeout per call
+// Fetch helper with AbortController timeout per call
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 3500): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -76,17 +77,23 @@ function generateFallbackReviews(
 }
 
 /**
- * Fetch last 15 draft rows from draft_log for client_id and extract first 5-6 words of each draft
+ * Fetch last 15 draft rows from draft_log for client_id with 1.5s AbortController Timeout Guard
  */
 async function getRecentOpenings(clientId: string): Promise<string> {
   console.time('fetch_recent_openings');
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
     const { data, error } = await supabaseAdmin
       .from('draft_log')
       .select('drafts')
       .eq('client_id', clientId)
       .order('created_at', { ascending: false })
-      .limit(15);
+      .limit(15)
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeoutId);
 
     if (error || !data || data.length === 0) {
       console.timeEnd('fetch_recent_openings');
@@ -110,33 +117,31 @@ async function getRecentOpenings(clientId: string): Promise<string> {
 
     console.timeEnd('fetch_recent_openings');
     return Array.from(openingsSet).slice(0, 10).join(', ');
-  } catch (err) {
-    console.warn('Error fetching recent openings from draft_log:', err);
+  } catch (err: any) {
+    console.warn('draft_log fetch timed out or failed (bypassing anti-repeat):', err.message || err);
     console.timeEnd('fetch_recent_openings');
     return '';
   }
 }
 
 /**
- * Fire-and-forget non-blocking insert into draft_log table
+ * Non-blocking insert into draft_log table (executed via waitUntil)
  */
-function logGeneratedDrafts(clientId: string, starRating: number, drafts: string[]) {
-  (async () => {
-    try {
-      const { error } = await supabaseAdmin.from('draft_log').insert([
-        {
-          client_id: clientId,
-          star_rating: starRating,
-          drafts: drafts,
-        },
-      ]);
-      if (error) {
-        console.warn('Background draft_log insert warning:', error.message);
-      }
-    } catch (err: any) {
-      console.warn('Background draft_log insert error:', err);
+async function logGeneratedDrafts(clientId: string, starRating: number, drafts: string[]) {
+  try {
+    const { error } = await supabaseAdmin.from('draft_log').insert([
+      {
+        client_id: clientId,
+        star_rating: starRating,
+        drafts: drafts,
+      },
+    ]);
+    if (error) {
+      console.warn('Background draft_log insert warning:', error.message);
     }
-  })();
+  } catch (err: any) {
+    console.warn('Background draft_log insert error:', err);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -174,7 +179,7 @@ export async function POST(req: NextRequest) {
     const { business_name, business_type, keywords, tone, language } = client;
     const kwString = Array.isArray(keywords) && keywords.length > 0 ? keywords.join(', ') : 'service';
 
-    // 4. Extract recent openings from draft_log table for anti-redundancy
+    // 4. Extract recent openings with 1.5s Timeout Guard
     const recentOpenings = await getRecentOpenings(client.id);
 
     // 5. Build System Prompt & User Prompt
@@ -201,11 +206,10 @@ Rules:
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 
-    // 6. Execute Call to Ultra-Fast Gemini Lite Models
+    // 6. Execute Call to Ultra-Fast Gemini Lite Models (gemini-3.5-flash-lite -> gemini-3.1-flash-lite -> gemini-3.6-flash)
     const geminiKey = process.env.GEMINI_API_KEY?.trim();
 
     if (geminiKey && geminiKey.length > 10) {
-      // Primary: gemini-3.5-flash-lite (1.0s speed benchmarked!)
       const geminiModelConfigs = [
         {
           model: 'gemini-3.5-flash-lite',
@@ -254,7 +258,8 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 const final5Drafts = parsed.slice(0, 5);
                 console.timeEnd(timerLabel);
                 console.timeEnd('total_generate_reviews_request');
-                logGeneratedDrafts(client.id, rating, final5Drafts);
+                // Use waitUntil for non-blocking Vercel background execution
+                waitUntil(logGeneratedDrafts(client.id, rating, final5Drafts));
                 return NextResponse.json({
                   success: true,
                   drafts: final5Drafts,
@@ -271,10 +276,10 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
       }
     }
 
-    // Try OpenRouter API with 3.5s timeout
+    // OpenRouter Fallback with active model meta-llama/llama-3.3-70b-instruct:free
     const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
     if (openRouterKey && openRouterKey.length > 10) {
-      const openRouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-lite-001:free';
+      const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
       console.time('provider_openrouter');
       try {
         const res = await fetchWithTimeout(
@@ -311,7 +316,7 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
               const final5Drafts = parsed.slice(0, 5);
               console.timeEnd('provider_openrouter');
               console.timeEnd('total_generate_reviews_request');
-              logGeneratedDrafts(client.id, rating, final5Drafts);
+              waitUntil(logGeneratedDrafts(client.id, rating, final5Drafts));
               return NextResponse.json({
                 success: true,
                 drafts: final5Drafts,
@@ -330,7 +335,7 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
     // Ultra-fast Fallback Generator if AI calls time out
     const fallbackDrafts = generateFallbackReviews(business_name, business_type, rating, keywords);
     console.timeEnd('total_generate_reviews_request');
-    logGeneratedDrafts(client.id, rating, fallbackDrafts);
+    waitUntil(logGeneratedDrafts(client.id, rating, fallbackDrafts));
     return NextResponse.json({
       success: true,
       drafts: fallbackDrafts,
