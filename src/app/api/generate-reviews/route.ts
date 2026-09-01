@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { getClientBySlug, supabaseAdmin } from '@/lib/supabase';
+import dns from 'dns';
+
+// Force IPv4 first DNS lookup to prevent Windows Node fetch IPv6 DNS hangs
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 
 // Simple in-memory rate limiting per IP (max 12 requests per minute)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -24,8 +30,8 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
-// Fetch helper with AbortController timeout per call
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 3500): Promise<Response> {
+// Fetch helper with AbortController 6.0-second timeout per call
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 6000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -206,21 +212,21 @@ Rules:
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 
-    // 6. Execute Call to Ultra-Fast Gemini Lite Models (gemini-3.5-flash-lite -> gemini-3.1-flash-lite -> gemini-3.6-flash)
+    // 6. Execute Call to Gemini Models (gemini-2.0-flash -> gemini-1.5-flash -> gemini-3.5-flash-lite)
     const geminiKey = process.env.GEMINI_API_KEY?.trim();
 
     if (geminiKey && geminiKey.length > 10) {
       const geminiModelConfigs = [
         {
+          model: 'gemini-2.0-flash',
+          thinkingConfig: {},
+        },
+        {
+          model: 'gemini-1.5-flash',
+          thinkingConfig: {},
+        },
+        {
           model: 'gemini-3.5-flash-lite',
-          thinkingConfig: { thinkingLevel: 'minimal' },
-        },
-        {
-          model: 'gemini-3.1-flash-lite',
-          thinkingConfig: { thinkingLevel: 'minimal' },
-        },
-        {
-          model: 'gemini-3.6-flash',
           thinkingConfig: { thinkingLevel: 'minimal' },
         },
       ];
@@ -239,12 +245,12 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 generationConfig: {
                   responseMimeType: 'application/json',
                   temperature: 0.7,
-                  maxOutputTokens: 350,
-                  thinkingConfig: config.thinkingConfig,
+                  maxOutputTokens: 400,
+                  ...config.thinkingConfig,
                 },
               }),
             },
-            3500
+            6000
           );
 
           if (res.ok) {
@@ -258,7 +264,6 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 const final5Drafts = parsed.slice(0, 5);
                 console.timeEnd(timerLabel);
                 console.timeEnd('total_generate_reviews_request');
-                // Use waitUntil for non-blocking Vercel background execution
                 waitUntil(logGeneratedDrafts(client.id, rating, final5Drafts));
                 return NextResponse.json({
                   success: true,
@@ -268,15 +273,15 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
               }
             }
           }
-        } catch (e) {
-          console.warn(`Gemini model ${config.model} attempt failed or timed out:`, e);
+        } catch (e: any) {
+          console.warn(`Gemini model ${config.model} attempt failed:`, e.message || e);
         } finally {
           console.timeEnd(timerLabel);
         }
       }
     }
 
-    // OpenRouter Fallback with active model meta-llama/llama-3.3-70b-instruct:free
+    // OpenRouter Fallback
     const openRouterKey = process.env.OPENROUTER_API_KEY?.trim();
     if (openRouterKey && openRouterKey.length > 10) {
       const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
@@ -299,10 +304,10 @@ Return ONLY a raw JSON array of 5 strings, nothing else.`;
                 { role: 'user', content: userPrompt },
               ],
               temperature: 0.7,
-              max_tokens: 350,
+              max_tokens: 400,
             }),
           },
-          3500
+          6000
         );
 
         if (res.ok) {
