@@ -188,27 +188,33 @@ export async function POST(req: NextRequest) {
     // 4. Extract recent openings with 1.5s Timeout Guard
     const recentOpenings = await getRecentOpenings(client.id);
 
-    // 5. Build System Prompt & User Prompt
-    const systemPrompt = `You are ghostwriting a short Google review in the authentic voice of a real, one-time customer — not a copywriter, not a brand voice, not an assistant. Tone: ${tone || 'warm and reassuring'}. Language: ${language || 'English'}.
+    // 5. Build System Prompt & User Prompt (Phase 2 Spec)
+    const systemPrompt = `You are ghostwriting a short Google review in the authentic voice of a real, one-time customer. Tone: ${tone || 'warm and reassuring'}. Language: ${language || 'English'}.
 
-Never use these overused review phrases or close variants of them: 'highly recommend', 'great experience', 'highly professional', 'top-notch', 'exceeded expectations', 'will definitely come back', 'hidden gem', 'exceptional service'. Real customers describe one or two specific, ordinary details instead of using these stock phrases.`;
+Follow these rules strictly, they matter more than sounding polished:
+- Vary sentence length deliberately within each review — mix one short sentence with a longer one. Never make all sentences a similar length.
+- Never use promotional/inflated words: 'stunning', 'vibrant', 'must-visit', 'boasts', 'exemplifies', 'seamless', 'exceptional', 'top-notch', 'highly recommend', 'great experience', 'exceeded expectations', 'hidden gem'.
+- Never tack on a present-participle phrase for fake depth (e.g. '...highlighting the great service', '...ensuring a pleasant visit'). If you want to add a detail, state it as its own plain sentence instead.
+- Never list three adjectives in a row (e.g. 'friendly, professional, and efficient'). Real people don't talk in triplets.
+- Don't hyphenate common word pairs with perfect consistency (well-known, on-time, high-quality) — either skip the hyphen or don't use the pair at all.
+- Mention exactly one small, ordinary, specific detail (a wait time, one staff interaction, one specific thing they noticed) rather than general praise.
+- It's fine for a review to feel slightly incomplete or trail off naturally, the way a quick phone-typed review actually reads. Don't polish every sentence into a complete, balanced thought.
+- Use contractions naturally (didn't, wasn't, it's) rather than formal full forms.`;
 
     let userPrompt = `Write 5 short Google reviews for '${business_name}', a ${business_type}, from a customer who just had a ${rating}-star experience.
 
 Naturally work in 1-2 of these keywords only where they'd genuinely fit — never force one in: ${kwString}.
 
 Rules:
-- 20 to 35 words each (never shorter than 20 — short one-liners carry no useful detail or keyword value).
-- Each of the 5 must open differently and use a different sentence structure — do not let them read like variations of the same template.`;
+- 20 to 35 words each.
+- Each of the 5 must open differently, use a different sentence structure, AND a different rhythm (vary short/long sentence mix across the 5, not just different topics).`;
 
     if (recentOpenings) {
-      userPrompt += `\n- Do not start any review with these recently-used openings for this business, or close variants of them: ${recentOpenings}`;
+      userPrompt += `\n- Do not start with these recently-used openings for this business: ${recentOpenings}`;
     }
 
-    userPrompt += `\n- Mention one small, specific, ordinary detail (a wait time, a staff member's helpfulness, how a specific concern was handled) rather than generic praise.
-- Plain, unpolished language — how someone actually types on their phone, not broken grammar or fake typos, just unpolished and specific.
-- If the rating is 1-3 stars, the review should sound like genuine, fair feedback — specific about what fell short, not exaggerated negativity, and not softened into fake positivity either. Do not suppress or soften negative ratings — every rating gets an honest draft.
-- Do not use any of the banned phrases from the system instructions.
+    userPrompt += `\n- If the rating is 1-3 stars, write genuine, fair, specific feedback about what fell short — not exaggerated negativity, not softened into fake positivity.
+- Follow every rule from the system instructions about avoiding AI writing patterns.
 
 Return ONLY a raw JSON array of 5 strings, nothing else.`;
 

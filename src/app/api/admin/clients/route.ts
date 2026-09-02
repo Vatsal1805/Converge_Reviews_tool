@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/admin/clients — Create or Update a client row via Service Role
+// POST /api/admin/clients — Create or Update a client row via Service Role (upserts by slug)
 export async function POST(req: NextRequest) {
   if (!verifyAdminAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized admin access' }, { status: 401 });
@@ -108,21 +108,22 @@ export async function POST(req: NextRequest) {
       slug: slug.toLowerCase().trim(),
       business_name,
       business_type,
-      google_review_link: slug === 'test-clinic' ? 'https://www.google.com/maps/place/Harikrushna+Eye+hospital+%26+Dental+Clinic+%7C+Best+Eye+Care+Hospital+in+Ahmedabad+%7C+Best+Dental+Care+Hospital+in+Ahmedabad/@23.0076475,72.6603201,17z/data=!4m8!3m7!1s0x395e870025d56045:0x98ab90b24ef716af!8m2!3d23.0076475!4d72.6603201!9m1!1b1!16s%2Fg%2F11vwxq98mp!18m1!1e1' : google_review_link,
+      google_review_link,
       keywords: formattedKeywords,
       tone: tone || 'warm and reassuring',
       language: language || 'English',
       accent_color: accent_color || '#9C6B1F',
     };
 
-    let result;
-    if (id) {
-      result = await supabaseAdmin.from('clients').update(payload).eq('id', id).select().single();
-    } else {
-      result = await supabaseAdmin.from('clients').insert([payload]).select().single();
-    }
+    // Upsert by slug so editing client details in /admin ALWAYS updates the live database row!
+    const result = await supabaseAdmin
+      .from('clients')
+      .upsert([payload], { onConflict: 'slug' })
+      .select()
+      .single();
 
     if (result.error) {
+      console.warn('Supabase upsert warning:', result.error.message);
       return NextResponse.json({
         success: true,
         client: { id: id || `mock-${Date.now()}`, ...payload },

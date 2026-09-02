@@ -13,87 +13,101 @@ import {
   Zap,
   Smartphone,
   Copy,
+  CreditCard,
+  Building2,
+  Lock,
 } from 'lucide-react';
 import PitchDemoWidget from '@/components/PitchDemoWidget';
 
 export const metadata: Metadata = {
   title: 'Converge Reviews — Turn Happy Customers into Google Reviews',
-  description: 'AI-assisted Google review acceleration for local clinics, restaurants, and institutes in Gujarat. Built by Converge Digital.',
+  description: 'AI-assisted Google review acceleration platform for local clinics, restaurants, and institutes in Gujarat.',
 };
 
 export default function PitchLandingPage() {
   return (
     <div className="min-h-[100dvh] bg-paper text-ink selection:bg-brass selection:text-white">
-      {/* Navigation */}
+      {/* Navigation Header */}
       <nav className="border-b border-line bg-paper/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brass text-white flex items-center justify-center font-bold font-display text-sm">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-brass text-white flex items-center justify-center font-bold font-display text-sm shadow-sm">
               C
             </div>
             <span className="font-display font-bold text-lg tracking-tight">Converge Reviews</span>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <a
               href="#demo"
-              className="text-xs font-mono uppercase tracking-wider text-ink/70 hover:text-ink transition-colors hidden sm:inline-block"
+              className="text-xs font-mono uppercase tracking-wider text-ink/70 hover:text-ink transition-colors hidden md:inline-block"
             >
               Live Demo
             </a>
             <a
-              href="#problem"
-              className="text-xs font-mono uppercase tracking-wider text-ink/70 hover:text-ink transition-colors hidden sm:inline-block"
+              href="#pricing"
+              className="text-xs font-mono uppercase tracking-wider text-ink/70 hover:text-ink transition-colors hidden md:inline-block"
             >
-              SEO Impact
+              Pricing
             </a>
             <Link
-              href="/admin"
-              className="px-3.5 py-1.5 rounded-lg border border-line bg-paper-raised text-xs font-mono text-ink/80 hover:border-brass hover:text-brass transition-colors"
+              href="/login"
+              className="px-3.5 py-1.5 rounded-lg border border-line bg-paper-raised text-xs font-medium text-ink hover:border-brass hover:text-brass transition-colors"
             >
-              Client Login
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="px-4 py-1.5 rounded-lg bg-brass text-white text-xs font-medium hover:bg-brass-deep transition-all shadow-sm flex items-center gap-1"
+            >
+              <span>Start Free Trial</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section — Asymmetric Two-Column per design.md Surface B */}
+      {/* Hero Section — Asymmetric Two-Column */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-16 sm:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Content (60% width) */}
+          {/* Left Content */}
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-paper-raised border border-line text-xs font-mono text-brass">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>For Gujarat Local Businesses</span>
+              <span>SaaS Platform for Gujarat Local Businesses</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold tracking-tight text-ink leading-[1.1]">
-              Get more Google reviews without typing a word.
+              Turn happy customers into 5-star Google reviews in 20 seconds.
             </h1>
 
             <p className="text-lg sm:text-xl text-ink/80 leading-relaxed max-w-2xl font-normal">
-              A counter QR code that generates short, natural AI review drafts in seconds. Your happy customers pick their favorite, tap one button, and post directly to your Google page.
+              Place a smart counter QR code at your reception. Customers tap a star rating, pick a short AI draft loaded with your local SEO keywords, and post directly to your Google Maps page.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-              <a
-                href="#demo"
+              <Link
+                href="/signup"
                 className="tactile-btn px-6 py-4 rounded-xl bg-brass text-white font-medium text-base flex items-center justify-center gap-2 shadow-slip hover:bg-brass-deep transition-all"
               >
-                <span>Try Live Counter Demo</span>
+                <span>Start 7-Day Free Trial</span>
                 <ArrowRight className="w-5 h-5" />
-              </a>
+              </Link>
 
               <a
-                href="#contact"
+                href="#demo"
                 className="px-6 py-4 rounded-xl border border-line bg-paper-raised text-ink font-medium text-base flex items-center justify-center gap-2 hover:bg-paper transition-colors"
               >
-                <span>Onboard Your Business</span>
+                <span>Try Live Counter Demo</span>
               </a>
             </div>
 
-            {/* Honest Proof Line */}
+            {/* Proof Points */}
             <div className="pt-4 flex items-center gap-6 text-xs font-mono text-ink/60 border-t border-line/60">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                <span>No Credit Card Required</span>
+              </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-signal-good" />
                 <span>100% Google Compliant</span>
@@ -105,7 +119,7 @@ export default function PitchLandingPage() {
             </div>
           </div>
 
-          {/* Right Visual — Tactile Tilted Counter Receipt Card */}
+          {/* Right Visual — Tactile Tilted Counter Card */}
           <div className="lg:col-span-5 relative">
             <div className="relative transform lg:rotate-2 hover:rotate-0 transition-transform duration-300">
               <div className="bg-paper-raised p-6 sm:p-8 rounded-2xl border border-line shadow-slip-hover space-y-5">
@@ -127,7 +141,7 @@ export default function PitchLandingPage() {
                   </div>
 
                   <div className="p-4 rounded-xl bg-paper border border-line text-center text-sm italic text-ink/80">
-                    "Had a great experience for my dental checkup. Dr. Harikrushna and team were very thorough and gentle!"
+                    "Had a great experience for my root canal treatment. Dr. Harikrushna was very thorough and gentle!"
                   </div>
 
                   <div className="h-[48px] rounded-xl bg-brass text-white font-medium text-sm flex items-center justify-center gap-2">
@@ -145,12 +159,12 @@ export default function PitchLandingPage() {
       <section id="problem" className="border-t border-line bg-paper-raised py-16 sm:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
           <div className="max-w-2xl space-y-3">
-            <span className="text-xs font-mono uppercase tracking-wider text-brass">The Friction</span>
+            <span className="text-xs font-mono uppercase tracking-wider text-brass">The Counter Problem</span>
             <h2 className="text-3xl sm:text-4xl font-display font-bold tracking-tight">
               Why happy customers leave without writing a review.
             </h2>
             <p className="text-base sm:text-lg text-ink/70">
-              You deliver great service every day, but your Google rating doesn't reflect it. Here is what stops people at the counter:
+              You deliver great service every day, but your Google rating doesn't reflect it. Here is what stops people at reception:
             </p>
           </div>
 
@@ -161,7 +175,7 @@ export default function PitchLandingPage() {
               </div>
               <h3 className="font-display font-bold text-lg">Mobile Typing Stress</h3>
               <p className="text-sm text-ink/70 leading-relaxed">
-                Older patients (40–70 years old) find typing long sentences on a small smartphone keyboard frustrating, even when they want to praise you.
+                Older patients (40–70 years old) find typing long sentences on small smartphone keyboards frustrating, even when they want to praise you.
               </p>
             </div>
 
@@ -171,7 +185,7 @@ export default function PitchLandingPage() {
               </div>
               <h3 className="font-display font-bold text-lg">Blank Screen Hesitation</h3>
               <p className="text-sm text-ink/70 leading-relaxed">
-                Customers stand at the reception counter in a hurry. Faced with a blank text box, they don't know what words to write and give up.
+                Customers standing at your counter are in a hurry. Faced with a blank text box, they don't know what words to write and give up.
               </p>
             </div>
 
@@ -181,7 +195,7 @@ export default function PitchLandingPage() {
               </div>
               <h3 className="font-display font-bold text-lg">Missing Local SEO Keywords</h3>
               <p className="text-sm text-ink/70 leading-relaxed">
-                Even when people leave 5 stars without text, Google's algorithm misses relevant terms like "root canal" or "gelato" that drive new search rankings.
+                Even when people leave 5 stars without text, Google's search algorithm misses key terms like "root canal" or "cataract" that drive search rankings.
               </p>
             </div>
           </div>
@@ -201,95 +215,108 @@ export default function PitchLandingPage() {
             </p>
           </div>
 
-          {/* Embedded Live Pitch Demo Component */}
           <PitchDemoWidget />
         </div>
       </section>
 
-      {/* How Local SEO Works */}
-      <section className="border-t border-line bg-paper-raised py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-6 space-y-4">
-            <span className="text-xs font-mono uppercase tracking-wider text-brass">Search Algorithm</span>
+      {/* Pricing Section (Prompt 6 & SaaS Integration) */}
+      <section id="pricing" className="border-t border-line bg-paper-raised py-16 sm:py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-12">
+          <div className="text-center max-w-xl mx-auto space-y-3">
+            <span className="text-xs font-mono uppercase tracking-wider text-brass">Simple Transparent Pricing</span>
             <h2 className="text-3xl sm:text-4xl font-display font-bold tracking-tight">
-              How Google ranks local businesses in Gujarat.
+              Start free, upgrade when you see results.
             </h2>
-            <p className="text-base text-ink/70 leading-relaxed">
-              Google Maps & Search rankings lean heavily on three factors: total review count, recent review frequency, and keyword density inside review text.
+            <p className="text-base text-ink/70">
+              Get your custom QR code ready in 2 minutes. No credit card required to start.
             </p>
-            
-            <ul className="space-y-3 pt-2">
-              <li className="flex items-start gap-3 text-sm text-ink">
-                <CheckCircle2 className="w-5 h-5 text-signal-good flex-shrink-0 mt-0.5" />
-                <span><strong>Natural Keywords:</strong> Quietly weaves search terms like "eye checkup" or "waffle cone" into drafts.</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-ink">
-                <CheckCircle2 className="w-5 h-5 text-signal-good flex-shrink-0 mt-0.5" />
-                <span><strong>100% Policy Compliant:</strong> The customer explicitly pastes & submits on Google themselves. Zero auto-posting.</span>
-              </li>
-              <li className="flex items-start gap-3 text-sm text-ink">
-                <CheckCircle2 className="w-5 h-5 text-signal-good flex-shrink-0 mt-0.5" />
-                <span><strong>Multi-Tenant Ready:</strong> Onboard new clinic, restaurant, or institute locations in under 5 minutes.</span>
-              </li>
-            </ul>
           </div>
 
-          <div className="lg:col-span-6 bg-paper p-8 rounded-2xl border border-line space-y-4">
-            <div className="flex items-center gap-2 text-brass font-mono text-xs uppercase">
-              <TrendingUp className="w-4 h-4" />
-              <span>Conversion Funnel</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Trial Card */}
+            <div className="p-8 rounded-2xl bg-paper border border-line space-y-6 flex flex-col justify-between shadow-sm">
+              <div className="space-y-4">
+                <div className="inline-block px-3 py-1 bg-paper-raised border border-line text-xs font-mono text-brass rounded-full">
+                  7-Day Free Trial
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold font-serif text-ink">₹0</span>
+                  <span className="text-sm text-ink/60 font-mono">/ 7 days</span>
+                </div>
+                <p className="text-sm text-ink/70">
+                  Full access to test customer QR scanning & review generation at your counter.
+                </p>
+
+                <ul className="space-y-3 pt-2 text-sm text-ink/80">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>Instant QR Code Generation</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>AI Review Prompt Engine</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>Up to 2 Business Locations</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/signup"
+                className="tactile-btn w-full py-3.5 rounded-xl border border-line bg-paper-raised text-ink font-medium text-sm text-center hover:bg-paper transition-all"
+              >
+                Start Free Trial Now
+              </Link>
             </div>
-            
-            <div className="space-y-3">
-              <div className="p-3 bg-paper-raised rounded-xl border border-line flex justify-between items-center text-sm">
-                <span>1. Scan QR Code</span>
-                <span className="font-mono text-xs text-brass">100% Reach</span>
+
+            {/* Growth Plan Card */}
+            <div className="p-8 rounded-2xl bg-paper border-2 border-brass space-y-6 flex flex-col justify-between shadow-slip relative">
+              <div className="absolute -top-3.5 right-6 px-3 py-1 bg-brass text-white text-[11px] uppercase font-bold tracking-wider rounded-full shadow-sm">
+                Most Popular
               </div>
-              <div className="p-3 bg-paper-raised rounded-xl border border-line flex justify-between items-center text-sm">
-                <span>2. Select Star Rating</span>
-                <span className="font-mono text-xs text-brass">&lt; 3 Seconds</span>
+
+              <div className="space-y-4">
+                <div className="inline-block px-3 py-1 bg-brass/10 text-xs font-mono text-brass rounded-full">
+                  Full Business Plan
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold font-serif text-ink">₹500</span>
+                  <span className="text-sm text-ink/60 font-mono">setup + ₹299/mo</span>
+                </div>
+                <p className="text-sm text-ink/70">
+                  Complete setup including custom counter standee printing + unlimited monthly AI reviews.
+                </p>
+
+                <ul className="space-y-3 pt-2 text-sm text-ink">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>High-Res Counter Standee Printable PNG</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>Unlimited AI Review Generation</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>Live QR Scan Analytics & Conversion Stats</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-signal-good" />
+                    <span>Priority WhatsApp Support</span>
+                  </li>
+                </ul>
               </div>
-              <div className="p-3 bg-paper-raised rounded-xl border border-line flex justify-between items-center text-sm">
-                <span>3. Pick AI Draft</span>
-                <span className="font-mono text-xs text-brass">&lt; 10 Seconds</span>
-              </div>
-              <div className="p-3 bg-brass text-white rounded-xl flex justify-between items-center text-sm font-medium">
-                <span>4. Copy & Post on Google</span>
-                <span className="font-mono text-xs">Done in &lt; 20s</span>
-              </div>
+
+              <Link
+                href="/signup"
+                className="tactile-btn w-full py-3.5 rounded-xl bg-brass text-white font-medium text-sm text-center shadow-sm hover:bg-brass-deep transition-all"
+              >
+                Get Started with Converge
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Agency Contact / Inquiry Section */}
-      <section id="contact" className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-8">
-        <div className="space-y-3">
-          <span className="text-xs font-mono uppercase tracking-wider text-brass">Partner With Us</span>
-          <h2 className="text-3xl sm:text-4xl font-display font-bold tracking-tight">
-            Ready to get more Google reviews for your business?
-          </h2>
-          <p className="text-base text-ink/70 max-w-xl mx-auto">
-            Converge Digital provides end-to-end setup including custom standee design, QR printing, and monthly review reports.
-          </p>
-        </div>
-
-        <div className="inline-flex flex-col sm:flex-row items-center gap-4 justify-center bg-paper-raised p-6 rounded-2xl border border-line shadow-slip w-full max-w-md mx-auto">
-          <a
-            href="mailto:contact@convergedigitals.com?subject=Converge%20Reviews%20Inquiry"
-            className="tactile-btn w-full sm:w-auto px-6 py-3.5 rounded-xl bg-brass text-white font-medium text-sm flex items-center justify-center gap-2"
-          >
-            <Mail className="w-4 h-4" />
-            <span>Email Converge Digital</span>
-          </a>
-
-          <a
-            href="tel:+919876543210"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-line bg-paper text-ink font-medium text-sm flex items-center justify-center gap-2 hover:bg-paper-raised"
-          >
-            <PhoneCall className="w-4 h-4" />
-            <span>Call Our Team</span>
-          </a>
         </div>
       </section>
 

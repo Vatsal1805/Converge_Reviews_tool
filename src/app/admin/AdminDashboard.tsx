@@ -66,13 +66,47 @@ export default function AdminDashboard() {
   const [qrModalClient, setQrModalClient] = useState<ClientWithStats | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
-  // Check saved session password
+  // Check Supabase session OR stored token on mount
   useEffect(() => {
-    const saved = localStorage.getItem('converge_admin_token');
-    if (saved) {
-      setPassword(saved);
-      fetchClients(saved);
+    async function checkAdminAuth() {
+      const defaultAdminPass = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'converge_secret_admin_2026';
+      const savedToken = localStorage.getItem('converge_admin_token') || defaultAdminPass;
+
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data } = await supabase.auth.getUser();
+
+        if (data.user) {
+          const res = await fetch('/api/auth/role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: data.user.id, email: data.user.email }),
+          });
+
+          const roleData = await res.json();
+          if (roleData.isAdmin) {
+            setPassword(savedToken);
+            setIsAuthenticated(true);
+            localStorage.setItem('converge_admin_token', savedToken);
+            fetchClients(savedToken);
+            return;
+          } else {
+            window.location.href = '/dashboard';
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Admin auth check warning:', e);
+      }
+
+      const saved = localStorage.getItem('converge_admin_token');
+      if (saved) {
+        setPassword(saved);
+        fetchClients(saved);
+      }
     }
+
+    checkAdminAuth();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {

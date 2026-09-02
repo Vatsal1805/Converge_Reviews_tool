@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, ChevronLeft, ChevronRight, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, Check, ExternalLink, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import { ClientRecord, logScanEvent } from '@/lib/supabase';
 
 interface CustomerFlowProps {
@@ -54,6 +54,21 @@ export default function CustomerFlow({ client }: CustomerFlowProps) {
 
   // Per-client dynamic accent color (defaults to brass #9C6B1F)
   const accentColor = client.accent_color || '#9C6B1F';
+
+  // Check if trial status is expired — show calm generic paused screen
+  if (client.status === 'expired') {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-white flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-5 text-slate-400">
+          <Clock className="w-8 h-8" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-200 mb-2 font-serif">Page Temporarily Offline</h1>
+        <p className="text-slate-400 text-sm max-w-sm leading-relaxed">
+          This business's review page is temporarily paused. Please check back later.
+        </p>
+      </div>
+    );
+  }
 
   // Log page scan on initial mount via secure API route
   useEffect(() => {

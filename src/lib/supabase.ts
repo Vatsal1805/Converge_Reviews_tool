@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export interface ClientRecord {
   id: string;
+  user_id?: string;
   slug: string;
   business_name: string;
   business_type: string;
@@ -10,6 +11,12 @@ export interface ClientRecord {
   tone: string;
   language: string;
   accent_color: string;
+  status?: string;
+  trial_ends_at?: string;
+  reminder_sent?: boolean;
+  razorpay_subscription_id?: string;
+  subscription_status?: string;
+  setup_fee_paid?: boolean;
   created_at?: string;
 }
 
